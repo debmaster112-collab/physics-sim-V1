@@ -72,13 +72,15 @@ class Ball:
         self.acc_y = gravity
         self.mass = mass
         self.r = radius
+        self.side = ""
 
     def update(self):
         # X position
-
         step_circle_x = self.x + self.vel_x * dt + self.acc_x * (dt**2) * 0.5
 
         if step_circle_x <= self.r:  # left wall collision
+            self.side = "left"
+            
             w = self.x - self.r  # distance before next step
 
             a = self.acc_x / 2
@@ -102,11 +104,17 @@ class Ball:
             self.x = self.r
 
             self.vel_x += self.acc_x * t_hit
+            Ek_x = self.get_energy()[1]
             self.vel_x = -(self.vel_x) * restitution.value
+            self.energyTest(Ek_x, self.get_energy()[1])
             self.x = self.x + self.vel_x * t_after + self.acc_x * t_after**2 * 0.5
             self.vel_x += self.acc_x * t_after
 
+
+
         elif step_circle_x >= x - self.r:  # right wall collision
+            self.side = "right"
+
             w = x - self.r - self.x  # height before next step
 
             a = self.acc_x / 2
@@ -130,7 +138,9 @@ class Ball:
             self.x = x - self.r
 
             self.vel_x += self.acc_x * t_hit
+            Ek_x = self.get_energy()[1]
             self.vel_x = -(self.vel_x) * restitution.value
+            self.energyTest(Ek_x, self.get_energy()[1])
             self.x = self.x + self.vel_x * t_after + self.acc_x * t_after**2 * 0.5
             self.vel_x += self.acc_x * t_after
 
@@ -150,6 +160,8 @@ class Ball:
         step_circle_y = self.y + self.vel_y * dt + self.acc_y * (dt**2) * 0.5
 
         if step_circle_y <= self.r:  # floor collision
+            self.side = "floor"
+
             h = self.y - self.r  # height before next step
 
             a = self.acc_y / 2
@@ -172,11 +184,15 @@ class Ball:
             self.y = self.r
 
             self.vel_y += self.acc_y * t_hit
+            Ek_y = self.get_energy()[2]
             self.vel_y = -(self.vel_y) * restitution.value
+            self.energyTest(Ek_y, self.get_energy()[2])
             self.y = (self.y + self.vel_y * t_after) + self.acc_y * t_after**2 * 0.5
             self.vel_y += self.acc_y * t_after
 
         elif step_circle_y >= y - self.r:  # roof collision
+            self.side = "roof"
+
             h = self.y - y + self.r  # height before next step
 
             a = self.acc_y / 2
@@ -199,7 +215,9 @@ class Ball:
             self.y = y - self.r
 
             self.vel_y += self.acc_y * t_hit
+            Ek_y = self.get_energy()[2]
             self.vel_y = -(self.vel_y) * restitution.value
+            self.energyTest(Ek_y, self.get_energy()[2])
             self.y = (self.y + self.vel_y * t_after) + self.acc_y * t_after**2 * 0.5
             self.vel_y += self.acc_y * t_after
 
@@ -211,16 +229,16 @@ class Ball:
             self.y = self.r
             self.vel_y = 0
 
-        potential_energy = -self.mass * gravity * (self.y - self.r)
-        kinetic_energy = 0.5 * self.mass * (self.vel_x**2 + self.vel_y**2)
-        Energy = kinetic_energy + potential_energy
+        Ep = -self.mass * gravity * (self.y - self.r)
+        Ek = self.mass * (self.vel_x ** 2 + self.vel_y ** 2) * 0.5
+        Energy = Ep + Ek
 
         allVelocityX.append(self.vel_x)
         allVelocityY.append(self.vel_y)
         allpositionX.append(self.x)
         allpositionY.append(self.y)
-        allPotentialEnergy.append(potential_energy)
-        allKineticEnergy.append(kinetic_energy)
+        allPotentialEnergy.append(Ep)
+        allKineticEnergy.append(Ek)
         allEnergy.append(Energy)
         AllTime.append(time)
 
@@ -231,6 +249,23 @@ class Ball:
             (self.x / meters_per_pixel, (y - self.y) / meters_per_pixel),
             self.r / meters_per_pixel,
         )
+
+    def get_energy(self):
+        Ep = -self.mass * gravity * (self.y - self.r)
+
+        Ek_x = 0.5 * self.mass * self.vel_x**2
+        Ek_y = 0.5 * self.mass * self.vel_y**2
+
+        Ek = Ek_x + Ek_y
+
+        return Ep, Ek_x, Ek_y, Ek        
+
+    def energyTest(self, preEk, postEk):
+        print("side", self.side)
+        print("pre ", preEk)
+        print("post", postEk)
+        print(postEk - preEk* restitution.value**2)
+
 
 
 ball = Ball(x / 2, y / 2, 10, 10, 1, 0.25)
