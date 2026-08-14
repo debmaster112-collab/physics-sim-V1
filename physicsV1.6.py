@@ -5,8 +5,8 @@ import pygame
 
 meters_per_pixel = 0.01
 
-x = 720
-y = 480
+x = 7.2
+y = 4.8
 
 allVelocityX = []
 allVelocityY = []
@@ -18,7 +18,7 @@ allEnergy = []
 AllTime = []
 
 pygame.init()
-screen = pygame.display.set_mode((x, y))
+screen = pygame.display.set_mode((x / meters_per_pixel, y / meters_per_pixel))
 clock = pygame.time.Clock()
 running = True
 
@@ -75,29 +75,128 @@ class Ball:
 
     def update(self):
         # X position
-        self.x += self.vel_x * dt + self.acc_x * (dt**2) * 0.5
-        self.vel_x += self.acc_x * dt
+
+        step_circle_x = self.x + self.vel_x * dt + self.acc_x * (dt**2) * 0.5
+
+        if step_circle_x <= self.r:  # left wall collision
+            w = self.x - self.r  # distance before next step
+
+            a = self.acc_x / 2
+            b = self.vel_x
+            c = w
+
+            # Time of the collision
+
+            if a != 0:
+                t1 = (-b - math.sqrt(b**2 - 4 * a * c)) / (2 * a)
+                t2 = (-b + math.sqrt(b**2 - 4 * a * c)) / (2 * a)
+
+                valid_times = [t for t in (t1, t2) if 0 <= t <= dt]
+                t_hit = min(valid_times)
+
+            else:
+                t_hit = -c / b
+
+            t_after = dt - t_hit
+
+            self.x = self.r
+
+            self.vel_x += self.acc_x * t_hit
+            self.vel_x = -(self.vel_x) * restitution.value
+            self.x = self.x + self.vel_x * t_after + self.acc_x * t_after**2 * 0.5
+            self.vel_x += self.acc_x * t_after
+
+        elif step_circle_x >= x - self.r:  # right wall collision
+            w = x - self.r - self.x  # height before next step
+
+            a = self.acc_x / 2
+            b = self.vel_x
+            c = w
+
+            # Time of the collision
+
+            if a != 0:
+                t1 = (-b - math.sqrt(b**2 - 4 * a * c)) / (2 * a)
+                t2 = (-b + math.sqrt(b**2 - 4 * a * c)) / (2 * a)
+
+                valid_times = [t for t in (t1, t2) if 0 <= t <= dt]
+                t_hit = min(valid_times)
+
+            else:
+                t_hit = -c / b
+
+            t_after = dt - t_hit
+
+            self.x = x - self.r
+
+            self.vel_x += self.acc_x * t_hit
+            self.vel_x = -(self.vel_x) * restitution.value
+            self.x = self.x + self.vel_x * t_after + self.acc_x * t_after**2 * 0.5
+            self.vel_x += self.acc_x * t_after
+
+        else:
+            self.x = step_circle_x
+            self.vel_x += self.acc_x * dt
+
+        if self.x <= self.r:
+            self.x = self.r
+            self.vel_x = 0
+
+        if self.x >= x - self.r:
+            self.x = x - self.r
+            self.vel_x = 0
 
         # Y position
         step_circle_y = self.y + self.vel_y * dt + self.acc_y * (dt**2) * 0.5
 
-        if step_circle_y <= self.r:
+        if step_circle_y <= self.r:  # floor collision
             h = self.y - self.r  # height before next step
 
             a = self.acc_y / 2
             b = self.vel_y
             c = h
 
-            # Time of the collision
-            t1 = (-b - math.sqrt(b**2 - 4 * a * c)) / (2 * a)
-            t2 = (-b + math.sqrt(b**2 - 4 * a * c)) / (2 * a)
+            if a != 0:
+                # Time of the collision
+                t1 = (-b - math.sqrt(b**2 - 4 * a * c)) / (2 * a)
+                t2 = (-b + math.sqrt(b**2 - 4 * a * c)) / (2 * a)
 
-            valid_times = [t for t in (t1, t2) if 0 <= t <= dt]
-            t_hit = min(valid_times)
+                valid_times = [t for t in (t1, t2) if 0 <= t <= dt]
+                t_hit = min(valid_times)
+
+            else:
+                t_hit = -c / b
 
             t_after = dt - t_hit
 
             self.y = self.r
+
+            self.vel_y += self.acc_y * t_hit
+            self.vel_y = -(self.vel_y) * restitution.value
+            self.y = (self.y + self.vel_y * t_after) + self.acc_y * t_after**2 * 0.5
+            self.vel_y += self.acc_y * t_after
+
+        elif step_circle_y >= y - self.r:  # roof collision
+            h = self.y - y + self.r  # height before next step
+
+            a = self.acc_y / 2
+            b = self.vel_y
+            c = h
+
+            if a != 0:
+                # Time of the collision
+                t1 = (-b - math.sqrt(b**2 - 4 * a * c)) / (2 * a)
+                t2 = (-b + math.sqrt(b**2 - 4 * a * c)) / (2 * a)
+
+                valid_times = [t for t in (t1, t2) if 0 <= t <= dt]
+                t_hit = min(valid_times)
+
+            else:
+                t_hit = -c / b
+
+            t_after = dt - t_hit
+
+            self.y = y - self.r
 
             self.vel_y += self.acc_y * t_hit
             self.vel_y = -(self.vel_y) * restitution.value
@@ -129,20 +228,17 @@ class Ball:
         pygame.draw.circle(
             screen,
             "green",
-            (self.x / meters_per_pixel, y - self.y / meters_per_pixel),
+            (self.x / meters_per_pixel, (y - self.y) / meters_per_pixel),
             self.r / meters_per_pixel,
         )
 
 
-ball = Ball(3.6, 2.4, 0, 0, 1, 0.25)
+ball = Ball(x / 2, y / 2, 10, 10, 1, 0.25)
 
-restitution = Slider(10, 10, 0, 1, 0.1, 0.8)
+restitution = Slider(10, 10, 0, 1, 0.1, 1)
 
 time = 0
 dt = 0
-
-acc_y = gravity
-
 
 # def physics():
 #     global ball
@@ -194,7 +290,7 @@ def graph():
     axs[1, 2].set_title("Energy vs Time")
     axs[1, 2].set_xlabel("Time (s)")
     axs[1, 2].set_ylabel("Energy (J)")
-    axs[1, 2].set_ylim(0, 25)
+    # axs[1, 2].set_ylim(0, 25)
 
     plt.show()
 
@@ -206,7 +302,6 @@ while running:
     for event in pygame.event.get():
         if event.type == pygame.QUIT:
             running = False
-
     ball.update()
     draw()
 
